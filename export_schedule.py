@@ -7,8 +7,8 @@ import os
 # Your official AzuraCast base URL
 AZURACAST_URL = "https://radio.913aycltfm.com"
 
-# Dictionary linking your AzuraCast Station IDs to your exact database names
-# Swap the numeric keys ("1", "2", "3") if your actual AzuraCast station IDs differ
+# Dictionary linking your AzuraCast Station IDs to your exact database short names
+# Double check your dashboard to ensure "1", "2", and "3" match your live stream IDs
 STATIONS = {
     "1": "91.3_ayclt_fm",
     "2": "91.3_ayclt_fm_hd2",
@@ -83,10 +83,10 @@ def main():
             
     ics_lines.append("END:VCALENDAR")
     
-    # Commit the unified stream elements to a single file
+    # Commit the unified stream elements to a single file using strict CRLF line endings (\r\n)
     print("Writing all stations to the single iCalendar file...")
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("\n".join(ics_lines))
+    with open(OUTPUT_FILE, "w", encoding="utf-8", newline="") as f:
+        f.write("\r\n".join(ics_lines))
         
     print(f"Successfully saved all stations to {OUTPUT_FILE}")
 
