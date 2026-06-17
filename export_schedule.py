@@ -8,15 +8,15 @@ AZURACAST_URL = "https://radio.913aycltfm.com"
 
 # Dictionary mapping your station IDs to their display names AND their public player links
 STATIONS = {
-    "91.3_ayclt_fm": {
+    "91.3 Ayclt FM": {
         "name": "91.3 Ayclt FM",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm"
     },
-    "91.3_ayclt_fm_hd2": {
+    "91.3 Ayclt FM HD2": {
         "name": "91.3 Ayclt FM HD2",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd2"
     },
-    "91.3_ayclt_fm_hd3": {
+    "91.3 Ayclt FM HD3": {
         "name": "91.3 Ayclt FM HD3",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd3"
     }
