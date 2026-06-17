@@ -4,15 +4,25 @@ from datetime import datetime, timezone
 import os
 
 # --- CONFIGURATION ---
-AZURACAST_URL = "https://radio.913aycltfm.com"
+AZURACAST_URL = "https://913aycltfm.com"
 
+# Dictionary mapping your station IDs to their display names AND their public player links
 STATIONS = {
-    "91.3_ayclt_fm": "91.3_ayclt_fm",
-    "91.3_ayclt_fm_hd2": "91.3_ayclt_fm_hd2",
-    "91.3_ayclt_fm_hd3": "91.3_ayclt_fm_hd3"
+    "91.3_ayclt_fm": {
+        "name": "91.3_ayclt_fm",
+        "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm"
+    },
+    "91.3_ayclt_fm_hd2": {
+        "name": "91.3_ayclt_fm_hd2",
+        "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd2"
+    },
+    "91.3_ayclt_fm_hd3": {
+        "name": "91.3_ayclt_fm_hd3",
+        "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd3"
+    }
 }
 
-OUTPUT_FILE = "docs/azuracast_schedule.ics"
+OUTPUT_FILE = "azuracast_schedule.ics"  # Saving directly to root folder
 # ---------------------
 
 def fetch_schedule(station_id):
@@ -33,7 +43,7 @@ def format_ical_date(timestamp):
         return None
 
 def main():
-    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+    os.makedirs(os.path.dirname(OUTPUT_FILE) if os.path.dirname(OUTPUT_FILE) else '.', exist_ok=True)
     now_str = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     
     ics_lines = [
@@ -46,7 +56,10 @@ def main():
     
     event_count = 0
     
-    for station_id, station_name in STATIONS.items():
+    for station_id, info in STATIONS.items():
+        station_name = info["name"]
+        public_url = info["public_url"]
+        
         print(f"Fetching schedule for {station_name}...")
         schedule_data = fetch_schedule(station_id)
         
@@ -55,8 +68,6 @@ def main():
             start_ts = event.get("start_timestamp")
             end_ts = event.get("end_timestamp")
             
-            # CRITICAL FIX: If AzuraCast doesn't return time data, skip it entirely
-            # Empty event tags will corrupt the file structure for Chronicle Bot
             if not start_ts or not end_ts or not summary:
                 continue
                 
@@ -76,15 +87,13 @@ def main():
                 f"DTSTART:{start_str}",
                 f"DTEND:{end_str}",
                 f"SUMMARY:{tagged_summary}",
-                f"LOCATION:{AZURACAST_URL}", 
+                f"LOCATION:{public_url}",   # <--- Dynamically sets the specific station's player link
                 "END:VEVENT"
             ])
             event_count += 1
             
     ics_lines.append("END:VCALENDAR")
     
-    # CRITICAL FIX: Ensure the calendar always contains at least one fallback item 
-    # so the file layout doesn't break if all station lists are temporarily empty
     if event_count == 0:
         fallback_start = datetime.now(timezone.utc).strftime("%Y%m%dT%H%0000Z")
         fallback_end = datetime.now(timezone.utc).strftime("%Y%m%dT%H%0500Z")
@@ -94,7 +103,7 @@ def main():
         ics_lines.insert(-1, f"DTSTART:{fallback_start}")
         ics_lines.insert(-1, f"DTEND:{fallback_end}")
         ics_lines.insert(-1, "SUMMARY:[System] Schedule Sync Active")
-        ics_lines.insert(-1, f"LOCATION:{AZURACAST_URL}")
+        ics_lines.insert(-1, f"LOCATION:{AZURACAST_URL}/public")
         ics_lines.insert(-1, "END:VEVENT")
     
     print(f"Writing {max(event_count, 1)} events to the single iCalendar file...")
