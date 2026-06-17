@@ -2,28 +2,48 @@ import json
 import urllib.request
 from datetime import datetime, timezone
 import os
+import re
 
 # --- CONFIGURATION ---
-AZURACAST_URL = "https://radio.913aycltfm.com"
+AZURACAST_URL = "https://913aycltfm.com"
 
-# Dictionary mapping your station IDs to their display names AND their public player links
 STATIONS = {
-    "91.3 Ayclt FM": {
+    "91.3_ayclt_fm": {
         "name": "91.3 Ayclt FM",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm"
     },
-    "91.3 Ayclt FM HD2": {
+    "91.3_ayclt_fm_hd2": {
         "name": "91.3 Ayclt FM HD2",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd2"
     },
-    "91.3 Ayclt FM HD3": {
+    "91.3_ayclt_fm_hd3": {
         "name": "91.3 Ayclt FM HD3",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd3"
     }
 }
 
-OUTPUT_FILE = "azuracast_schedule.ics"  # Saving directly to root folder
+OUTPUT_FILE = "azuracast_schedule.ics"
 # ---------------------
+
+def clean_text(text):
+    if not text:
+        return "Scheduled Broadcast"
+    text = str(text).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+    text = text.replace("\n", "\\n").replace("\r", "")
+    return re.sub(r'[\x00-\x1F\x7F]', '', text).strip()
+
+def fold_line(line):
+    if len(line.encode('utf-8')) <= 75:
+        return line
+    parts = []
+    while len(line.encode('utf-8')) > 75:
+        cut = 75
+        while len(line[:cut].encode('utf-8')) > 75:
+            cut -= 1
+        parts.append(line[:cut])
+        line = " " + line[cut:]
+    parts.append(line)
+    return "\r\n".join(parts)
 
 def fetch_schedule(station_id):
     url = f"{AZURACAST_URL}/api/station/{station_id}/schedule"
@@ -34,6 +54,94 @@ def fetch_schedule(station_id):
     except Exception as e:
         print(f"Error fetching station {station_id}: {e}")
         return []
+
+def format_ical_date(timestamp):
+    try:
+        dt = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+        return dt.strftime("%Y%m%dT%H%M%SZ")
+    except Exception:
+        return None
+
+def main():
+    os.makedirs(os.path.dirname(OUTPUT_FILE) if os.path.dirname(OUTPUT_FILE) else '.', exist_ok=True)
+    now_str = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    
+    ics_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//91.3 Ayclt FM//Unified Schedule Exporter//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+    ]
+    
+    event_count = 0
+    
+    for station_id, info in STATIONS.items():
+        station_name = info["name"]
+        public_url = info["public_url"]
+        
+        print(f"Fetching schedule for {station_name}...")
+        schedule_data = fetch_schedule(station_id)
+        
+        for event in schedule_data:
+            summary = clean_text(event.get("name"))
+            start_ts = event.get("start_timestamp")
+            end_ts = event.get("end_timestamp")
+            
+            if not start_ts or not end_ts or not summary:
+                continue
+                
+            start_str = format_ical_date(start_ts)
+            end_str = format_ical_date(end_ts)
+            
+            if not start_str or not end_str:
+                continue
+                
+            uid = f"ayclt-{station_id}-{event.get('id', start_ts)}@913aycltfm"
+            tagged_summary = clean_text(f"[{station_name}] {summary}")
+            
+            event_lines = [
+                "BEGIN:VEVENT",
+                f"UID:{uid}",
+                f"DTSTAMP:{now_str}",
+                f"DTSTART:{start_str}",
+                f"DTEND:{end_str}",
+                f"SUMMARY:{tagged_summary}",
+                f"LOCATION:{public_url}",
+                "END:VEVENT"
+            ]
+            
+            for line in event_lines:
+                ics_lines.append(fold_line(line))
+                
+            event_count += 1
+            
+    if event_count == 0:
+        fallback_start = datetime.now(timezone.utc).strftime("%Y%m%dT%H0000Z")
+        fallback_end = datetime.now(timezone.utc).strftime("%Y%m%dT%H3000Z")
+        fallback_lines = [
+            "BEGIN:VEVENT",
+            "UID:fallback-maintenance@913aycltfm",
+            f"DTSTAMP:{now_str}",
+            f"DTSTART:{fallback_start}",
+            f"DTEND:{fallback_end}",
+            "SUMMARY:[System] Schedule Sync Active",
+            f"LOCATION:{AZURACAST_URL}/public",
+            "END:VEVENT"
+        ]
+        for line in fallback_lines:
+            ics_lines.append(fold_line(line))
+            
+    ics_lines.append("END:VCALENDAR")
+    
+    print(f"Writing {max(event_count, 1)} events to the single iCalendar file...")
+    with open(OUTPUT_FILE, "w", encoding="utf-8", newline="") as f:
+        f.write("\r\n".join(ics_lines) + "\r\n")
+        
+    print(f"Successfully saved all stations to {OUTPUT_FILE}")
+
+if __name__ == "__main__":
+    main()
 
 def format_ical_date(timestamp):
     try:
