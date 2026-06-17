@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import os
 
 # --- CONFIGURATION ---
-AZURACAST_URL = "https://913aycltfm.com"
+AZURACAST_URL = "https://radio.913aycltfm.com"
 
 # Dictionary mapping your station IDs to their display names AND their public player links
 STATIONS = {
