@@ -2,7 +2,8 @@ name: Update AzuraCast iCal
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Runs every 5 minutes (GitHub cron syntax)
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -17,8 +18,6 @@ jobs:
       with:
         python-version: '3.10'
 
-    # Removed the docs folder creation step to keep the workspace clean
-
     - name: Run schedule exporter
       run: python export_schedule.py
 
@@ -26,7 +25,6 @@ jobs:
       run: |
         git config --global user.name "GitHub Action"
         git config --global user.email "actions@github.com"
-        # Changed this line to add the file from the root folder instead of /docs
         git add azuracast_schedule.ics
         git diff-index --quiet HEAD || git commit -m "Automated calendar update for all stations"
         git push
