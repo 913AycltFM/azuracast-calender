@@ -12,7 +12,7 @@ STATIONS = {
         "name": "91.3 Ayclt FM",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm"
     },
-    "91.3 Ayclt FM HD2": {
+    "91.3_ayclt_fm_hd2": {
         "name": "91.3 Ayclt FM HD2",
         "public_url": f"{AZURACAST_URL}/public/91.3_ayclt_fm_hd2"
     },
