@@ -17,8 +17,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Create docs directory
-      run: mkdir -p docs
+    # Removed the docs folder creation step to keep the workspace clean
 
     - name: Run schedule exporter
       run: python export_schedule.py
@@ -27,6 +26,7 @@ jobs:
       run: |
         git config --global user.name "GitHub Action"
         git config --global user.email "actions@github.com"
-        git add docs/
+        # Changed this line to add the file from the root folder instead of /docs
+        git add azuracast_schedule.ics
         git diff-index --quiet HEAD || git commit -m "Automated calendar update for all stations"
         git push
