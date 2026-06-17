@@ -2,8 +2,8 @@ name: Update AzuraCast iCal
 
 on:
   schedule:
-    # Runs every 5 minutes (GitHub cron syntax)
-    - cron: '*/5 * * * *'
+    # Runs every 6 minutes (GitHub cron syntax)
+    - cron: '*/6 * * * *'
   workflow_dispatch:
 
 jobs:
