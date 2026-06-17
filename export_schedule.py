@@ -22,7 +22,7 @@ STATIONS = {
     }
 }
 
-OUTPUT_FILE = "913_ayclt_fm_azuracast_schedules.ics"
+OUTPUT_FILE = "azuracast_schedules.ics"
 # ---------------------
 
 def clean_text(text):
