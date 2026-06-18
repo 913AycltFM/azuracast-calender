@@ -27,7 +27,7 @@ OUTPUT_FILE = "azuracast_schedule.ics"
 
 def clean_text(text):
     if not text:
-        return "Scheduled Broadcast"
+        return "Live DJ Broadcast"
     text = str(text).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
     text = text.replace("\n", "\\n").replace("\r", "")
     return re.sub(r'[\x00-\x1F\x7F]', '', text).strip()
@@ -46,12 +46,10 @@ def fold_line(line):
     return "\r\n".join(parts)
 
 def fetch_schedule(station_id):
-    # EXTENDED SYNC: Formats timestamps to request the next 30 days of data from AzuraCast
     now = datetime.now(timezone.utc)
     start_date = now.strftime("%Y-%m-%d")
     end_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")
     
-    # Custom API URL telling AzuraCast to send future calendar slots
     url = f"{AZURACAST_URL}/api/station/{station_id}/schedule?start={start_date}&end={end_date}"
     try:
         req = urllib.request.Request(url, headers={'User-Agent': '913AycltFM-iCal-Exporter'})
@@ -90,6 +88,12 @@ def main():
         schedule_data = fetch_schedule(station_id)
         
         for event in schedule_data:
+            # LIVE DJ FILTER CHECK
+            # AzuraCast tags live streamer blocks as 'streamer'. If it's a 'playlist', we skip it.
+            event_type = event.get("type", "").lower()
+            if event_type != "streamer":
+                continue
+                
             summary = clean_text(event.get("name"))
             start_ts = event.get("start_timestamp")
             end_ts = event.get("end_timestamp")
@@ -103,7 +107,7 @@ def main():
             if not start_str or not end_str:
                 continue
                 
-            uid = f"ayclt-{station_id}-{event.get('id', start_ts)}@913aycltfm"
+            uid = f"ayclt-dj-{station_id}-{event.get('id', start_ts)}@913aycltfm"
             tagged_summary = clean_text(f"[{station_name}] {summary}")
             
             event_lines = [
@@ -131,20 +135,20 @@ def main():
             f"DTSTAMP:{now_str}",
             f"DTSTART:{fallback_start}",
             f"DTEND:{fallback_end}",
-            "SUMMARY:[System] Schedule Sync Active",
+            "SUMMARY:[System] No Live DJs Scheduled",
             f"LOCATION:{AZURACAST_URL}/public",
             "END:VEVENT"
         ]
         for line in fallback_lines:
-            ics_lines.insert(-1, fold_line(line))
+            ics_lines.append(fold_line(line))
             
     ics_lines.append("END:VCALENDAR")
     
-    print(f"Writing {max(event_count, 1)} events to the single iCalendar file...")
+    print(f"Writing {max(event_count, 1)} live DJ events to the single iCalendar file...")
     with open(OUTPUT_FILE, "w", encoding="utf-8", newline="") as f:
         f.write("\r\n".join(ics_lines) + "\r\n")
         
-    print(f"Successfully saved all stations to {OUTPUT_FILE}")
+    print(f"Successfully saved live DJ schedule to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
