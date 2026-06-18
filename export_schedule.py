@@ -1,6 +1,6 @@
 import json
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import re
 
@@ -46,7 +46,13 @@ def fold_line(line):
     return "\r\n".join(parts)
 
 def fetch_schedule(station_id):
-    url = f"{AZURACAST_URL}/api/station/{station_id}/schedule"
+    # EXTENDED SYNC: Formats timestamps to request the next 14 days of data from AzuraCast
+    now = datetime.now(timezone.utc)
+    start_date = now.strftime("%Y-%m-%d")
+    end_date = (now + timedelta(days=14)).strftime("%Y-%m-%d")
+    
+    # Custom API URL telling AzuraCast to send future calendar slots
+    url = f"{AZURACAST_URL}/api/station/{station_id}/schedule?start={start_date}&end={end_date}"
     try:
         req = urllib.request.Request(url, headers={'User-Agent': '913AycltFM-iCal-Exporter'})
         with urllib.request.urlopen(req) as response:
@@ -130,7 +136,7 @@ def main():
             "END:VEVENT"
         ]
         for line in fallback_lines:
-            ics_lines.append(fold_line(line))
+            ics_lines.insert(-1, fold_line(line))
             
     ics_lines.append("END:VCALENDAR")
     
