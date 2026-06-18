@@ -46,10 +46,10 @@ def fold_line(line):
     return "\r\n".join(parts)
 
 def fetch_schedule(station_id):
-    # EXTENDED SYNC: Formats timestamps to request the next 14 days of data from AzuraCast
+    # EXTENDED SYNC: Formats timestamps to request the next 30 days of data from AzuraCast
     now = datetime.now(timezone.utc)
     start_date = now.strftime("%Y-%m-%d")
-    end_date = (now + timedelta(days=14)).strftime("%Y-%m-%d")
+    end_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")
     
     # Custom API URL telling AzuraCast to send future calendar slots
     url = f"{AZURACAST_URL}/api/station/{station_id}/schedule?start={start_date}&end={end_date}"
